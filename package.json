@@ -16,6 +16,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
-    "@tensorflow/tfjs-backend-webgpu": "^4.22.0"
+    "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
+    "@webgpu/types": "^0.1.69"
   }
 }

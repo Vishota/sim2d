@@ -20,6 +20,9 @@ importers:
       '@tensorflow/tfjs-backend-webgpu':
         specifier: ^4.22.0
         version: 4.22.0(@tensorflow/tfjs-core@4.22.0)
+      '@webgpu/types':
+        specifier: ^0.1.69
+        version: 0.1.69
     devDependencies:
       typescript:
         specifier: ~5.9.3
@@ -383,6 +386,9 @@ packages:
 
   '@webgpu/types@0.1.38':
     resolution: {integrity: sha512-7LrhVKz2PRh+DD7+S+PVaFd5HxaWQvoMqBbsV9fNJO1pjUs1P8bM2vQVNfk+3URTqbuTI7gkXi0rfsN0IadoBA==}
+
+  '@webgpu/types@0.1.69':
+    resolution: {integrity: sha512-RPmm6kgRbI8e98zSD3RVACvnuktIja5+yLgDAkTmxLr90BEwdTXRQWNLF3ETTTyH/8mKhznZuN5AveXYFEsMGQ==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -922,6 +928,8 @@ snapshots:
   '@types/seedrandom@2.4.34': {}
 
   '@webgpu/types@0.1.38': {}
+
+  '@webgpu/types@0.1.69': {}
 
   ansi-regex@5.0.1: {}
 

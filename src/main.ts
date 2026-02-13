@@ -1,33 +1,19 @@
-import Field from './Field';
-import Core from './Core';
-import * as tf from '@tensorflow/tfjs';
+import Solver from "./Solver";
+
+const code = `
+@group(0) @binding(0) var<uniform> uni: array<f32, 100>;
+@group(0) @binding(1) var<storage, read_write> stor: array<f32>;
+
+@compute @workgroup_size(10)
+fn calc(@builtin(global_invocation_id) id: vec3<u32>) {
+    let i = id.x;
+    let a = uni[i];
+    stor[i] = f32(id.x + id.y * 10000 + id.z * 100000000);
+}
 
 
-// 1️⃣ Create simulation field
-const fieldWidth = 1500;  // number of cells in X
-const fieldHeight = 1500; // number of cells in Y
-const field = new Field(fieldWidth, fieldHeight);
+`
 
-// 2️⃣ Create Core to handle canvas, camera, input, and loop
-const core = new Core(field, {
-    scale: 1,      // initial pixels per cell
-    tickSpeed: 1  // ~60 FPS
-});
-setInterval(() => field.debug(), 1000)
-// 3️⃣ The Core class already starts the loop, so nothing else is needed
+const solver = await Solver.create({code})
 
-console.log('Simulation started! Use WASD to pan, +/- to zoom.');
-
-window.addEventListener('beforeunload', () => {
-    try {
-        // Dispose all variables (models, weights)
-        tf.disposeVariables();
-
-        // Reset the backend to free GPU memory
-        tf.engine().reset();
-
-        console.log('TensorFlow.js memory cleared before reload.');
-    } catch (err) {
-        console.warn('Error clearing TF memory:', err);
-    }
-});
+solver.run()
