@@ -1,4 +1,5 @@
 import Solver from "./Solver";
+import World from "./World";
 
 const code = `
 const fieldX = 10;
@@ -30,7 +31,14 @@ fn id2d(x: u32, y: u32, xSize: u32, ySize: u32) -> u32 {
     return id;
 }
 
+
 `
+
+const world = await World.create({
+    size: [100,100]
+})
+
+world.loop()
 
 const solver = await Solver.create({code})
 
