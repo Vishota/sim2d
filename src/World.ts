@@ -52,8 +52,14 @@ const HEIGHT: u32 = ${size[1]};
 fn tick (
     @builtin(global_invocation_id) id: vec3<u32>
 ) {
-    let index = id.y * WIDTH + id.x;
-    next[index] = current[index] + 0.001;
+    let cur = current[id2d(id.x, id.y, WIDTH, HEIGHT)];
+
+    let top		= current[id2d(id.x, id.y - 1, WIDTH, HEIGHT)];
+    let bottom	= current[id2d(id.x, id.y + 1, WIDTH, HEIGHT)];
+    let left	= current[id2d(id.x - 1, id.y, WIDTH, HEIGHT)];
+    let right	= current[id2d(id.x + 1, id.y, WIDTH, HEIGHT)];
+    
+    next[id2d(id.x, id.y, WIDTH, HEIGHT)] = (cur + top + bottom + left + right) / 5 * .999;
 }
 
 fn id2d(x: u32, y: u32, xSize: u32, ySize: u32) -> u32 {
@@ -80,8 +86,8 @@ fn vert(@builtin(vertex_index) vertexIndex : u32)
 
 @fragment
 fn frag(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-    let x = u32(pos.x);
-    let y = u32(pos.y);
+    let x = u32(pos.x) / 10;
+    let y = u32(pos.y) / 10;
 
     if (x >= WIDTH || y >= HEIGHT) {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0);
@@ -126,11 +132,11 @@ fn sigm(x: f32) -> f32 {
         // compute
         const fieldBufferA = device.createBuffer({
             size: size[0] * size[1] * 4,
-            usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
+            usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
         const fieldBufferB = device.createBuffer({
             size: size[0] * size[1] * 4,
-            usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
+            usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
 
         const bindGroupA = device.createBindGroup({
@@ -167,6 +173,15 @@ fn sigm(x: f32) -> f32 {
             ],
             layout: sharedLayout
         })
+        
+
+        setInterval(() => {
+            //logBuffer(device, fieldBufferA, size[0] * size[1] * 4)
+            const initialData = new Float32Array(1)
+            initialData[0] = 1000;
+            device.queue.writeBuffer(fieldBufferA, Math.ceil(Math.random() * size[0]*size[1]) * 4, initialData);
+            device.queue.writeBuffer(fieldBufferB, Math.ceil(Math.random() * size[0]*size[1]) * 4, initialData);
+        }, 1000)
 
         const tickPipeline = device.createComputePipeline({
             compute: {
@@ -214,6 +229,7 @@ fn sigm(x: f32) -> f32 {
             Math.ceil(this._size[1] / 10)
         )
         pass.end()
+
         this._reverseBuffers = !this._reverseBuffers
     }
 
@@ -248,4 +264,24 @@ fn sigm(x: f32) -> f32 {
         requestAnimationFrame(() => this.loop())
     }
 
+}
+
+async function logBuffer(device: GPUDevice, buffer: GPUBuffer, size: number) {
+    // Create a CPU-readable buffer
+    const readBuffer = device.createBuffer({
+        size,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+    });
+
+    // Copy GPU buffer into it
+    const encoder = device.createCommandEncoder();
+    encoder.copyBufferToBuffer(buffer, 0, readBuffer, 0, size);
+    device.queue.submit([encoder.finish()]);
+
+    // Wait for mapping
+    await readBuffer.mapAsync(GPUMapMode.READ);
+    const array = new Float32Array(readBuffer.getMappedRange());
+    console.log(array);
+
+    readBuffer.unmap();
 }
