@@ -1,10 +1,12 @@
+import Stats from "./Stats";
+
 async function createCanvas(device: GPUDevice) {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 
     const context = canvas.getContext('webgpu')!;
 
-    canvas.width = 100;
-    canvas.height = 100;
+    canvas.width = 1000;
+    canvas.height = 1000;
 
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -21,6 +23,8 @@ export default class World {
     private _reverseBuffers = false
     private _rendered = 0
     private _ticked = 0
+
+    private _operationsPerTime = new Stats()
 
     constructor(
         private _device: GPUDevice,
@@ -48,7 +52,7 @@ const HEIGHT: u32 = ${size[1]};
 @group(0) @binding(0) var<storage, read> current: array<f32>;
 @group(0) @binding(1) var<storage, read_write> next: array<f32>;
 
-@compute @workgroup_size(16,16,1)
+@compute @workgroup_size(1,1,1)//idk why does (1,1,1) shows the best performance but ok
 fn tick (
     @builtin(global_invocation_id) id: vec3<u32>
 ) {
@@ -176,14 +180,14 @@ fn sigm(x: f32) -> f32 {
 
 
         setInterval(() => {
-            const data = new Float32Array([1000])
+            const data = new Float32Array([100000])
             const cellCount = size[0] * size[1];
             const elementIndex = Math.floor(Math.random() * cellCount);
             const offset = elementIndex * 4;
 
             device.queue.writeBuffer(fieldBufferA, offset, data);
             device.queue.writeBuffer(fieldBufferB, offset, data);
-        }, 3350)
+        }, 50)
 
         const tickPipeline = device.createComputePipeline({
             compute: {
@@ -266,17 +270,49 @@ fn sigm(x: f32) -> f32 {
     }
 
     loop() {
+        const targetRenderFps = [120,180];
+        const criticalFps = 60
+
+        let renderFps = 0
+        let computeQueue = 2
+
+        let latestRender = 0
+
+        const frametimes = new Array(10).fill(Infinity)
+
         const computeLoop = () => {
-            this.tick()
-            setTimeout(() => computeLoop(),0)
+            this._operationsPerTime.add(computeQueue)
+            for (let i = 0; i < computeQueue; i++) this.tick()
+            setTimeout(() => computeLoop(), 0)
         }
         const renderLoop = () => {
             this.render()
+
             requestAnimationFrame(() => renderLoop())
+        }
+
+        const statsLoop = () => {
+            const currentRender = performance.now()
+            const frametime = currentRender - latestRender
+            frametimes.unshift(frametime)
+            frametimes.pop()
+            const avgFrametime = frametimes.reduce((a, b) => a+b, 0) / frametimes.length
+            renderFps = 1000 / avgFrametime
+
+            if(renderFps < criticalFps) computeQueue = 1
+
+            if(renderFps < targetRenderFps[0]) computeQueue--
+            else if (renderFps > targetRenderFps[1]) computeQueue++
+            if(computeQueue < 1) computeQueue = 1
+            
+            latestRender = currentRender
+            
+            requestAnimationFrame(() => statsLoop())
         }
 
         computeLoop()
         renderLoop()
+        statsLoop()
     }
 
     runDebug() {
@@ -287,7 +323,8 @@ fn sigm(x: f32) -> f32 {
             console.log({
                 rendered: this._rendered,
                 ticked: this._ticked,
-                performanceCompute: this._ticked / (now - start)
+                performanceCompute: this._ticked / (now - start),
+                avgQueue: this._operationsPerTime.avg
             })
         }, 1000)
     }
