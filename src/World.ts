@@ -90,13 +90,13 @@ fn frag(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
     let y = u32(pos.y);
 
     if (x >= WIDTH || y >= HEIGHT) {
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
 
     let index = y * WIDTH + x;
     let value = sigm(current[index]);
 
-    return vec4<f32>(value, 0.0, 0.0, 1.0);
+    return vec4<f32>(.9 - value * .7, .8 - value * .7, .8 - value * .7, 1.0);
 }
 
 fn sigm(x: f32) -> f32 {
@@ -185,7 +185,7 @@ fn sigm(x: f32) -> f32 {
             console.log(offset)
             device.queue.writeBuffer(fieldBufferA, offset, data);
             device.queue.writeBuffer(fieldBufferB, offset, data);
-        }, 500)
+        }, 350)
 
         const tickPipeline = device.createComputePipeline({
             compute: {
