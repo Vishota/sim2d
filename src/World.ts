@@ -46,7 +46,7 @@ export default class World {
 
         const { size } = args;
 
-        const seed =877605; Math.ceil(Math.random() * 1024*1024)
+        const seed = Math.ceil(Math.random() * 1024*1024)
         console.log(seed)
         const wgslGenerator = new WGSLGenerator(seed)
         const fieldsFunctions = wgslGenerator.generate()
