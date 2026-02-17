@@ -4,8 +4,8 @@ async function createCanvas(device: GPUDevice) {
     const context = canvas.getContext('webgpu')!;
     const devicePixelRatio = window.devicePixelRatio;
 
-    canvas.width = canvas.clientWidth * devicePixelRatio;
-    canvas.height = canvas.clientHeight * devicePixelRatio;
+    canvas.width = 1000;
+    canvas.height = 1000;
 
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -86,8 +86,8 @@ fn vert(@builtin(vertex_index) vertexIndex : u32)
 
 @fragment
 fn frag(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-    let x = u32(pos.x) / 10;
-    let y = u32(pos.y) / 10;
+    let x = u32(pos.x);
+    let y = u32(pos.y);
 
     if (x >= WIDTH || y >= HEIGHT) {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0);
@@ -177,11 +177,15 @@ fn sigm(x: f32) -> f32 {
 
         setInterval(() => {
             //logBuffer(device, fieldBufferA, size[0] * size[1] * 4)
-            const initialData = new Float32Array(1)
-            initialData[0] = 1000;
-            device.queue.writeBuffer(fieldBufferA, Math.ceil(Math.random() * size[0]*size[1]) * 4, initialData);
-            device.queue.writeBuffer(fieldBufferB, Math.ceil(Math.random() * size[0]*size[1]) * 4, initialData);
-        }, 1000)
+            const data = new Float32Array([100000])
+            const cellCount = size[0] * size[1];
+            const elementIndex = Math.floor(Math.random() * cellCount);
+            const offset = elementIndex * 4;
+
+            console.log(offset)
+            device.queue.writeBuffer(fieldBufferA, offset, data);
+            device.queue.writeBuffer(fieldBufferB, offset, data);
+        }, 500)
 
         const tickPipeline = device.createComputePipeline({
             compute: {
