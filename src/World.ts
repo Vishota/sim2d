@@ -2,10 +2,9 @@ async function createCanvas(device: GPUDevice) {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 
     const context = canvas.getContext('webgpu')!;
-    const devicePixelRatio = window.devicePixelRatio;
 
-    canvas.width = 1000;
-    canvas.height = 1000;
+    canvas.width = 100;
+    canvas.height = 100;
 
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -20,7 +19,8 @@ async function createCanvas(device: GPUDevice) {
 
 export default class World {
     private _reverseBuffers = false
-    private _commandEncoder: GPUCommandEncoder = 0 as any;
+    private _rendered = 0
+    private _ticked = 0
 
     constructor(
         private _device: GPUDevice,
@@ -48,7 +48,7 @@ const HEIGHT: u32 = ${size[1]};
 @group(0) @binding(0) var<storage, read> current: array<f32>;
 @group(0) @binding(1) var<storage, read_write> next: array<f32>;
 
-@compute @workgroup_size(10,10,1)
+@compute @workgroup_size(16,16,1)
 fn tick (
     @builtin(global_invocation_id) id: vec3<u32>
 ) {
@@ -59,7 +59,7 @@ fn tick (
     let left	= current[id2d(id.x - 1, id.y, WIDTH, HEIGHT)];
     let right	= current[id2d(id.x + 1, id.y, WIDTH, HEIGHT)];
     
-    next[id2d(id.x, id.y, WIDTH, HEIGHT)] = (cur + top + bottom + left + right) / 5 * .999;
+    next[id2d(id.x, id.y, WIDTH, HEIGHT)] = (cur + top + bottom + left + right) / 5;
 }
 
 fn id2d(x: u32, y: u32, xSize: u32, ySize: u32) -> u32 {
@@ -173,19 +173,17 @@ fn sigm(x: f32) -> f32 {
             ],
             layout: sharedLayout
         })
-        
+
 
         setInterval(() => {
-            //logBuffer(device, fieldBufferA, size[0] * size[1] * 4)
-            const data = new Float32Array([100000])
+            const data = new Float32Array([1000])
             const cellCount = size[0] * size[1];
             const elementIndex = Math.floor(Math.random() * cellCount);
             const offset = elementIndex * 4;
 
-            console.log(offset)
             device.queue.writeBuffer(fieldBufferA, offset, data);
             device.queue.writeBuffer(fieldBufferB, offset, data);
-        }, 350)
+        }, 3350)
 
         const tickPipeline = device.createComputePipeline({
             compute: {
@@ -225,19 +223,28 @@ fn sigm(x: f32) -> f32 {
     }
 
     private tick() {
-        const pass = this._commandEncoder.beginComputePass()
+        this._ticked++
+
+        const commandEncoder = this._device.createCommandEncoder()
+        const pass = commandEncoder.beginComputePass()
         pass.setPipeline(this._tickPipeline)
         pass.setBindGroup(0, this._reverseBuffers ? this._bindGroupA : this._bindGroupB)
         pass.dispatchWorkgroups(
-            Math.ceil(this._size[0] / 10),
-            Math.ceil(this._size[1] / 10)
+            Math.ceil(this._size[0]),
+            Math.ceil(this._size[1])
         )
         pass.end()
 
         this._reverseBuffers = !this._reverseBuffers
+
+        this._device.queue.submit([commandEncoder.finish()]);
     }
 
     private render() {
+        this._rendered++
+
+        const commandEncoder = this._device.createCommandEncoder()
+
         const view = this._canvasData.context.getCurrentTexture().createView();
         const renderPass: GPURenderPassDescriptor = {
             colorAttachments: [
@@ -249,43 +256,39 @@ fn sigm(x: f32) -> f32 {
             ],
         };
 
-        const passEncoderRender = this._commandEncoder.beginRenderPass(renderPass);
+        const passEncoderRender = commandEncoder.beginRenderPass(renderPass);
         passEncoderRender.setPipeline(this._renderPipeline);
         passEncoderRender.setBindGroup(0, this._reverseBuffers ? this._bindGroupA : this._bindGroupB);
         passEncoderRender.draw(3, 1);
         passEncoderRender.end();
 
-        this._device.queue.submit([this._commandEncoder.finish()]);
+        this._device.queue.submit([commandEncoder.finish()]);
     }
 
     loop() {
-        const commandEncoder = this._device.createCommandEncoder()
-        this._commandEncoder = commandEncoder
+        const computeLoop = () => {
+            this.tick()
+            setTimeout(() => computeLoop(),0)
+        }
+        const renderLoop = () => {
+            this.render()
+            requestAnimationFrame(() => renderLoop())
+        }
 
-        this.tick()
-        this.render()
-
-        requestAnimationFrame(() => this.loop())
+        computeLoop()
+        renderLoop()
     }
 
-}
+    runDebug() {
+        const start = performance.now()
 
-async function logBuffer(device: GPUDevice, buffer: GPUBuffer, size: number) {
-    // Create a CPU-readable buffer
-    const readBuffer = device.createBuffer({
-        size,
-        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-    });
-
-    // Copy GPU buffer into it
-    const encoder = device.createCommandEncoder();
-    encoder.copyBufferToBuffer(buffer, 0, readBuffer, 0, size);
-    device.queue.submit([encoder.finish()]);
-
-    // Wait for mapping
-    await readBuffer.mapAsync(GPUMapMode.READ);
-    const array = new Float32Array(readBuffer.getMappedRange());
-    console.log(array);
-
-    readBuffer.unmap();
+        setInterval(() => {
+            const now = performance.now()
+            console.log({
+                rendered: this._rendered,
+                ticked: this._ticked,
+                performanceCompute: this._ticked / (now - start)
+            })
+        }, 1000)
+    }
 }

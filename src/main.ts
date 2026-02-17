@@ -1,7 +1,8 @@
 import World from "./World";
 
 const world = await World.create({
-    size: [1000,1000]
+    size: [100,100]
 })
 
 world.loop()
+world.runDebug()
