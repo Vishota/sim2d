@@ -46,10 +46,10 @@ export default class World {
 
         const { size } = args;
 
-        const seed = Math.ceil(Math.random() * 1024*1024)
+        const seed = 29148;Math.ceil(Math.random() * 1024*1024)
         console.log(seed)
         const wgslGenerator = new WGSLGenerator(seed)
-        const fieldsFunctions = wgslGenerator.generate()
+        const fieldsFunctions = wgslGenerator.generate(4)
         console.log(fieldsFunctions)
 
         const code = `
@@ -278,16 +278,17 @@ fn frag(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
             layout: sharedLayout
         })
 
-
-        setInterval(() => {
-            const data = new Float32Array([1000000])
-            const cellCount = size[0] * size[1] * 4;
-            const elementIndex = Math.floor(Math.random() * cellCount);
-            const offset = elementIndex * 4;
-
-            device.queue.writeBuffer(fieldBufferA, offset, data);
-            device.queue.writeBuffer(fieldBufferB, offset, data);
-        }, 10)
+        for(let i = 0; i < 1000; i++) {
+            // setTimeout(() => {
+                const data = new Float32Array([1000000])
+                const cellCount = size[0] * size[1] * 4;
+                const elementIndex = Math.floor(Math.random() * cellCount);
+                const offset = elementIndex * 4;
+    
+                device.queue.writeBuffer(fieldBufferA, offset, data);
+                device.queue.writeBuffer(fieldBufferB, offset, data);
+            // }, 10 * i)
+        }
 
         const tickPipeline = device.createComputePipeline({
             compute: {
@@ -370,7 +371,7 @@ fn frag(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
     }
 
     loopSeparated() {
-        let computeQueue = 10
+        let computeQueue = 3
 
         let latestRender = 0
 
@@ -392,12 +393,6 @@ fn frag(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
             const frametime = currentRender - latestRender
             frametimes.unshift(frametime)
             frametimes.pop()
-
-            // if (renderFps < criticalFps) computeQueue = 1
-
-            // if (renderFps < targetRenderFps[0]) computeQueue--
-            // else if (renderFps > targetRenderFps[1]) computeQueue++
-            // if (computeQueue < 1) computeQueue = 1
 
             latestRender = currentRender
 
