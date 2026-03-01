@@ -4,5 +4,6 @@ const world = await World.create({
     size: [innerWidth,innerHeight]
 })
 
-world.loopSeparated()
+world.loopSync()
 world.runDebug()
+GPUBufferUsage

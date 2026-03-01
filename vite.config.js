@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite'
-import { viteSingleFile } from 'vite-plugin-singlefile' // <-- named import
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
 export default defineConfig({
   plugins: [
-    viteSingleFile()  // use as a function
+    viteSingleFile()
   ],
   build: {
     target: 'esnext',
     minify: 'esbuild',
-    assetsInlineLimit: 1000000, // inline assets <1MB
+    assetsInlineLimit: 1000000,
   }
 })

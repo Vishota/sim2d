@@ -31,7 +31,7 @@ export class WGSLGenerator {
     private rng: SeededRandom;
 
     private neighbors = ["current", "top", "bottom", "left", "right"];
-    private channels: Channel[] = ["R", "G", "B"];
+    // private channels: Channel[] = ["R", "G", "B"];
 
     private binaryOps = [
         "add", "sub", "mul",
@@ -86,7 +86,7 @@ export class WGSLGenerator {
         return v;
     }
 
-    private genBinary(a: string, b: string, channel: Channel): string {
+    private genBinary(a: string, b: string): string {
         const op = this.rng.pick(this.binaryOps);
 
         switch (op) {
@@ -116,7 +116,7 @@ export class WGSLGenerator {
         if (branch < 0.65) {
             const a = this.genExpression(channel, depth - 1);
             const b = this.genExpression(channel, depth - 1);
-            const expr = this.genBinary(a, b, channel);
+            const expr = this.genBinary(a, b);
 
             if (this.rng.nextFloat() < 0.4) {
                 return this.genUnary(expr);
